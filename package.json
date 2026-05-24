@@ -1,0 +1,57 @@
+{
+  "name": "gold-dashboard",
+  "version": "0.1.0",
+  "description": "实时金价桌面面板",
+  "author": "devTech-zhang",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "electron": "electron .",
+    "dev:desktop": "node scripts/dev-electron.mjs",
+    "start": "vite --host 127.0.0.1",
+    "test": "node --test test/*.test.mjs",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "visual-check": "electron scripts/visual-check.mjs",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron": "^42.2.0",
+    "electron-builder": "^26.0.0",
+    "typescript": "^5.8.0",
+    "vite": "^7.0.0"
+  },
+  "build": {
+    "appId": "com.local.gold-dashboard",
+    "productName": "实时金价面板",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.finance"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    }
+  }
+}

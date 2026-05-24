@@ -1,0 +1,212 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  font-family:
+    Inter, "SF Pro Display", "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  color: #ffffff;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.panel {
+  width: 100vw;
+  height: 100vh;
+  background: var(--panel-bg);
+  color: #ffffff;
+  user-select: none;
+  overflow: hidden;
+}
+
+.panel.normal {
+  -webkit-app-region: drag;
+}
+
+.panel.compact {
+  display: grid;
+  place-items: center;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  cursor: pointer;
+}
+
+.dashboard {
+  position: relative;
+  display: grid;
+  grid-template-rows: 46px 30px 24px 24px;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  padding: 14px 18px;
+}
+
+.price-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 29px;
+  font-weight: 760;
+  line-height: 38px;
+  letter-spacing: 0;
+}
+
+.baseline-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 680;
+  line-height: 24px;
+}
+
+.meta-line,
+.hint-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.error-line {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  left: 8px;
+  padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffb4ab;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.compact-price {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--trend-color);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 30px;
+}
+
+.settings-panel {
+  display: grid;
+  grid-template-rows: 40px repeat(4, auto) auto;
+  gap: 18px;
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
+}
+
+.settings-window {
+  min-height: 100vh;
+  overflow: auto;
+  background: #242424;
+  color: #ffffff;
+}
+
+.settings-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 24px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.field span {
+  font-weight: 650;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 6px;
+  outline: none;
+  background: rgba(0, 0, 0, 0.28);
+  color: #ffffff;
+}
+
+.field input[type="text"],
+.field input[type="number"],
+.field select {
+  padding: 0 10px;
+}
+
+.field input[type="range"] {
+  height: 22px;
+  accent-color: #ffffff;
+}
+
+.field input[type="color"] {
+  width: 44px;
+  padding: 2px;
+}
+
+.color-row {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 8px;
+}
+
+.settings-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.settings-actions button {
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.settings-actions button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.settings-actions .danger-button {
+  border-color: rgba(255, 77, 79, 0.42);
+  color: #ff8a8a;
+}
+
+.settings-panel *,
+.field input,
+.field select,
+.settings-actions button {
+  -webkit-app-region: no-drag;
+}
