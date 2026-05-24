@@ -197,6 +197,7 @@ function DashboardWindow() {
         formatted={formatted}
         error={error}
         alertPrice={settings.alertPrice}
+        settings={settings}
         onCompact={enterCompactMode}
       />
     </main>
@@ -236,13 +237,25 @@ function SettingsWindow() {
   );
 }
 
-function Dashboard({ quote, formatted, error, alertPrice, onCompact }) {
+function Dashboard({ quote, formatted, error, alertPrice, settings, onCompact }) {
   return (
     <section className="dashboard" onDoubleClick={onCompact}>
-      <div className="price-line" style={{ color: formatted?.trendColor }}>
+      <div
+        className="price-line"
+        style={{
+          color: formatted?.trendColor,
+          fontSize: `${settings.priceFontSize}px`,
+        }}
+      >
         {formatted?.priceText ?? '-- 元/克'}
       </div>
-      <div className="baseline-line" style={{ color: formatted?.trendColor }}>
+      <div
+        className="baseline-line"
+        style={{
+          color: formatted?.trendColor,
+          fontSize: `${settings.baselineFontSize}px`,
+        }}
+      >
         {formatted?.baselineText ?? '基准：-- — 0.00 0.00%'}
       </div>
       <div className="meta-line">
@@ -296,6 +309,28 @@ function SettingsPanel({ settings, onChange, onCompact, onNormal, onQuit }) {
           max="100"
           value={settings.opacity}
           onChange={(event) => onChange('opacity', Number(event.target.value))}
+        />
+      </label>
+
+      <label className="field">
+        <span>价格字号：{settings.priceFontSize}px</span>
+        <input
+          type="range"
+          min="0"
+          max="50"
+          value={settings.priceFontSize}
+          onChange={(event) => onChange('priceFontSize', Number(event.target.value))}
+        />
+      </label>
+
+      <label className="field">
+        <span>基准字号：{settings.baselineFontSize}px</span>
+        <input
+          type="range"
+          min="0"
+          max="50"
+          value={settings.baselineFontSize}
+          onChange={(event) => onChange('baselineFontSize', Number(event.target.value))}
         />
       </label>
 

@@ -64,6 +64,7 @@ function createWindow() {
     minHeight: WINDOW_SIZES.compact.height,
     frame: false,
     transparent: true,
+    roundedCorners: true,
     backgroundColor: '#00000000',
     alwaysOnTop: true,
     resizable: false,
