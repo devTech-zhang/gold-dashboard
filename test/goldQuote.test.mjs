@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { PRICE_REFRESH_INTERVAL_MS } from '../src/domain/config.mjs';
 import {
   formatBeijingTimestamp,
   formatQuote,
@@ -8,6 +9,10 @@ import {
   parseZheshangQuote,
   shouldTriggerAlert,
 } from '../src/domain/goldQuote.mjs';
+
+test('refreshes gold price every 3 seconds', () => {
+  assert.equal(PRICE_REFRESH_INTERVAL_MS, 3_000);
+});
 
 test('formats refresh time as 24-hour Beijing time', () => {
   const timestamp = formatBeijingTimestamp(new Date('2026-05-23T18:30:05Z'));

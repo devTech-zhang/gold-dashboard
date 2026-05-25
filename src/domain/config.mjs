@@ -1,0 +1,1 @@
+export const PRICE_REFRESH_INTERVAL_MS = 3_000;

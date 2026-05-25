@@ -2,9 +2,11 @@
 
 一个基于 Electron + React + Vite 的桌面实时金价面板，适配 macOS 和 Windows。
 
+当前分支是 Windows 7 兼容分支，使用 Electron 22。`main` 分支继续使用最新 Electron，用于 macOS 和现代 Windows 系统迭代。
+
 ## 功能
 
-- 默认每 10 秒刷新浙商银行积存金价格
+- 默认每 3 秒刷新浙商银行积存金价格
 - 可在浙商银行 / 新浪两个 API 源之间切换
 - 涨红色 `▲`，跌绿色 `▼`，持平灰色 `—`
 - 无系统标题栏，窗口始终置顶，正常窗口全区域可拖拽
@@ -43,3 +45,10 @@ npm run dist
 - 新浪行情：`https://hq.sinajs.cn/list=SGE_AU9999`
 
 这些接口均由主进程请求，渲染进程只接收标准化后的行情数据。
+
+## 本地日志
+
+应用会把启动错误、窗口加载失败、接口请求失败和渲染进程异常写入本地日志，方便排查打不开的问题。
+
+- Windows 打包版：`%APPDATA%\实时金价面板\gold-dashboard.log`
+- macOS 打包版：`~/Library/Application Support/实时金价面板/gold-dashboard.log`

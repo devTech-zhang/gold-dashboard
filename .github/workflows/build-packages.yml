@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - win7-compat-logging
   workflow_dispatch:
 
 env:
@@ -12,6 +13,7 @@ env:
 jobs:
   macos:
     name: macOS packages
+    if: github.ref_name == 'main'
     runs-on: macos-latest
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
@@ -84,7 +86,7 @@ jobs:
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: gold-dashboard-windows
+          name: ${{ github.ref_name == 'main' && 'gold-dashboard-windows' || 'gold-dashboard-windows-win7' }}
           path: |
             release/*.exe
             release/*.blockmap

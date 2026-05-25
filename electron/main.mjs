@@ -1,11 +1,15 @@
 import { app, BrowserWindow, ipcMain, screen } from 'electron';
+import http from 'node:http';
+import https from 'node:https';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createFileLogger, serializeError } from './logger.mjs';
 import { formatBeijingTimestamp, parseSinaQuote, parseZheshangQuote } from '../src/domain/goldQuote.mjs';
 import { DEFAULT_SETTINGS, normalizeSettings } from '../src/domain/settings.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const logger = createFileLogger({ getDirectory: () => app.getPath('userData') });
 
 const WINDOW_SIZES = {
   normal: { width: 360, height: 168 },
@@ -40,7 +44,12 @@ let shaking = false;
 let settings = { ...DEFAULT_SETTINGS };
 let dragState;
 
+installErrorLogging();
+
+logger.info('app starting', getRuntimeInfo());
+
 app.whenReady().then(() => {
+  logger.info('app ready', { logFile: logger.path });
   createWindow();
 
   app.on('activate', () => {
@@ -48,6 +57,9 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+}).catch((error) => {
+  logger.error('app failed during startup', serializeError(error));
+  throw error;
 });
 
 app.on('window-all-closed', () => {
@@ -57,6 +69,7 @@ app.on('window-all-closed', () => {
 });
 
 function createWindow() {
+  logger.info('creating main window', { mode: currentMode, size: WINDOW_SIZES.normal });
   mainWindow = new BrowserWindow({
     width: WINDOW_SIZES.normal.width,
     height: WINDOW_SIZES.normal.height,
@@ -80,13 +93,25 @@ function createWindow() {
 
   mainWindow.setAlwaysOnTop(true, 'screen-saver');
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.once('ready-to-show', () => {
+    logger.info('main window ready to show');
+    mainWindow.show();
+  });
+  wireWindowLogging(mainWindow, 'main');
   wireMainWindowInteractions(mainWindow);
 
   if (app.isPackaged) {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    const filePath = path.join(__dirname, '../dist/index.html');
+    logger.info('loading main window file', { filePath });
+    mainWindow.loadFile(filePath).catch((error) => {
+      logger.error('main window loadFile failed', serializeError(error));
+    });
   } else {
-    mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL || 'http://127.0.0.1:5173');
+    const url = process.env.VITE_DEV_SERVER_URL || 'http://127.0.0.1:5173';
+    logger.info('loading main window url', { url });
+    mainWindow.loadURL(url).catch((error) => {
+      logger.error('main window loadURL failed', serializeError(error));
+    });
   }
 }
 
@@ -115,17 +140,25 @@ function createSettingsWindow() {
 
   settingsWindow.setMenuBarVisibility(false);
   settingsWindow.once('ready-to-show', () => settingsWindow?.show());
+  wireWindowLogging(settingsWindow, 'settings');
   wireWindowShortcuts(settingsWindow);
   settingsWindow.on('closed', () => {
     settingsWindow = undefined;
   });
 
   if (app.isPackaged) {
-    settingsWindow.loadFile(path.join(__dirname, '../dist/index.html'), { query: { window: 'settings' } });
+    const filePath = path.join(__dirname, '../dist/index.html');
+    logger.info('loading settings window file', { filePath });
+    settingsWindow.loadFile(filePath, { query: { window: 'settings' } }).catch((error) => {
+      logger.error('settings window loadFile failed', serializeError(error));
+    });
   } else {
     const devUrl = new URL(process.env.VITE_DEV_SERVER_URL || 'http://127.0.0.1:5173');
     devUrl.searchParams.set('window', 'settings');
-    settingsWindow.loadURL(devUrl.toString());
+    logger.info('loading settings window url', { url: devUrl.toString() });
+    settingsWindow.loadURL(devUrl.toString()).catch((error) => {
+      logger.error('settings window loadURL failed', serializeError(error));
+    });
   }
 
   return settingsWindow;
@@ -133,18 +166,20 @@ function createSettingsWindow() {
 
 ipcMain.handle('gold:fetch', async (_event, sourceId = 'zheshang') => {
   const source = SOURCES[sourceId] ?? SOURCES.zheshang;
-  const response = await fetch(source.url, { headers: source.headers });
 
-  if (!response.ok) {
-    throw new Error(`${source.label}接口请求失败：${response.status}`);
+  try {
+    const buffer = await requestBuffer(source.url, source.headers);
+    const text = new TextDecoder(source.encoding).decode(buffer);
+    const quote = {
+      ...source.parse(text),
+      updatedAt: formatBeijingTimestamp(),
+    };
+    logger.info('gold quote fetched', { source: source.label, price: quote.price, bytes: buffer.length });
+    return quote;
+  } catch (error) {
+    logger.error('gold quote fetch failed', { source: source.label, error: serializeError(error) });
+    throw error;
   }
-
-  const buffer = await response.arrayBuffer();
-  const text = new TextDecoder(source.encoding).decode(buffer);
-  return {
-    ...source.parse(text),
-    updatedAt: formatBeijingTimestamp(),
-  };
 });
 
 ipcMain.handle('window:set-mode', (_event, mode) => {
@@ -160,6 +195,12 @@ ipcMain.handle('settings:get', () => settings);
 
 ipcMain.handle('settings:update', (_event, nextSettings) => {
   settings = normalizeSettings(nextSettings);
+  logger.info('settings updated', {
+    source: settings.source,
+    backgroundColor: settings.backgroundColor,
+    opacity: settings.opacity,
+    hasAlertPrice: Boolean(settings.alertPrice),
+  });
   BrowserWindow.getAllWindows().forEach((window) => {
     window.webContents.send('settings:changed', settings);
   });
@@ -180,6 +221,13 @@ ipcMain.on('window:close', () => {
 
 ipcMain.on('window:quit', () => {
   app.quit();
+});
+
+ipcMain.on('app:renderer-error', (event, payload) => {
+  logger.error('renderer error', {
+    url: event.sender.getURL(),
+    payload,
+  });
 });
 
 ipcMain.on('window:drag-start', (_event, point) => {
@@ -227,6 +275,7 @@ function setWindowMode(mode) {
   }
 
   mainWindow.webContents.send('ui:window-mode-changed', currentMode);
+  logger.info('window mode changed', { mode: currentMode, bounds: mainWindow.getBounds() });
 }
 
 function toggleCompactMode() {
@@ -299,4 +348,99 @@ async function shakeWindow() {
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function requestBuffer(url, headers = {}, redirectCount = 0) {
+  return new Promise((resolve, reject) => {
+    if (redirectCount > 5) {
+      reject(new Error(`接口重定向次数过多：${url}`));
+      return;
+    }
+
+    const parsedUrl = new URL(url);
+    const client = parsedUrl.protocol === 'https:' ? https : http;
+    const request = client.request(parsedUrl, { method: 'GET', headers, timeout: 10_000 }, (response) => {
+      const statusCode = response.statusCode ?? 0;
+
+      if (statusCode >= 300 && statusCode < 400 && response.headers.location) {
+        response.resume();
+        const nextUrl = new URL(response.headers.location, parsedUrl).toString();
+        requestBuffer(nextUrl, headers, redirectCount + 1).then(resolve, reject);
+        return;
+      }
+
+      if (statusCode < 200 || statusCode >= 300) {
+        response.resume();
+        reject(new Error(`接口请求失败：${statusCode}`));
+        return;
+      }
+
+      const chunks = [];
+      response.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      response.on('end', () => resolve(Buffer.concat(chunks)));
+    });
+
+    request.on('timeout', () => {
+      request.destroy(new Error(`接口请求超时：${url}`));
+    });
+    request.on('error', reject);
+    request.end();
+  });
+}
+
+function installErrorLogging() {
+  process.on('uncaughtException', (error) => {
+    logger.error('uncaught exception', serializeError(error));
+    app.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    logger.error('unhandled rejection', serializeError(reason));
+    app.exit(1);
+  });
+
+  app.on('child-process-gone', (_event, details) => {
+    logger.error('child process gone', details);
+  });
+
+  app.on('render-process-gone', (_event, webContents, details) => {
+    logger.error('render process gone', {
+      url: webContents?.getURL?.(),
+      details,
+    });
+  });
+}
+
+function wireWindowLogging(window, name) {
+  window.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    logger.error(`${name} window failed to load`, {
+      errorCode,
+      errorDescription,
+      validatedURL,
+      isMainFrame,
+    });
+  });
+
+  window.webContents.on('render-process-gone', (_event, details) => {
+    logger.error(`${name} window render process gone`, details);
+  });
+
+  window.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    if (level >= 1) {
+      logger.warn(`${name} window console`, { level, message, line, sourceId });
+    }
+  });
+}
+
+function getRuntimeInfo() {
+  return {
+    appVersion: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    osRelease: process.getSystemVersion?.(),
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+    node: process.versions.node,
+    v8: process.versions.v8,
+  };
 }

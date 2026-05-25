@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { PRICE_REFRESH_INTERVAL_MS } from './domain/config.mjs';
 import { formatQuote, shouldTriggerAlert } from './domain/goldQuote.mjs';
 import { DEFAULT_SETTINGS, normalizeSettings } from './domain/settings.mjs';
 import './styles.css';
@@ -20,6 +21,7 @@ const bridge = window.goldDashboard ?? {
   closeSettingsWindow: () => {},
   getSettings: async () => DEFAULT_SETTINGS,
   updateSettings: async (settings) => normalizeSettings(settings),
+  logRendererError: () => {},
   closeWindow: () => {},
   quitApp: () => {},
   startWindowDrag: () => {},
@@ -84,7 +86,7 @@ function DashboardWindow() {
 
   useEffect(() => {
     fetchQuote();
-    const timer = window.setInterval(fetchQuote, 10_000);
+    const timer = window.setInterval(fetchQuote, PRICE_REFRESH_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [fetchQuote]);
 
@@ -341,5 +343,25 @@ function normalizeColorInput(value) {
 function isFormField(target) {
   return ['INPUT', 'SELECT', 'TEXTAREA'].includes(target?.tagName);
 }
+
+window.addEventListener('error', (event) => {
+  bridge.logRendererError({
+    type: 'error',
+    message: event.message,
+    stack: event.error?.stack,
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+  });
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  bridge.logRendererError({
+    type: 'unhandledrejection',
+    message: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  });
+});
 
 createRoot(document.getElementById('root')).render(<App />);

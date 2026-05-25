@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('goldDashboard', {
   closeSettingsWindow: () => ipcRenderer.send('settings:close-window'),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   updateSettings: (settings) => ipcRenderer.invoke('settings:update', settings),
+  logRendererError: (payload) => ipcRenderer.send('app:renderer-error', payload),
   closeWindow: () => ipcRenderer.send('window:close'),
   quitApp: () => ipcRenderer.send('window:quit'),
   startWindowDrag: (point) => ipcRenderer.send('window:drag-start', point),
